@@ -1,0 +1,16 @@
+/.libs
+/html
+/xml
+/*.stamp
+/gtkgstwidget-decl-list.txt
+/gtkgstwidget-decl.txt
+/gtkgstwidget-undeclared.txt
+/gtkgstwidget-undocumented.txt
+/gtkgstwidget-unused.txt
+/gtkgstwidget.args
+/gtkgstwidget.hierarchy
+/gtkgstwidget.interfaces
+/gtkgstwidget.prerequisites
+/gtkgstwidget.signals
+/gtkgstwidget.types
+/*.bak

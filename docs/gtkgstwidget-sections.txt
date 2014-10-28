@@ -1,0 +1,24 @@
+<SECTION>
+<FILE>gtkgstwidget</FILE>
+GtkGstWidget
+GtkGstWidgetClass
+gtk_gst_widget_new
+gtk_gst_widget_set_caps
+gtk_gst_widget_set_buffer
+<SUBSECTION Standard>
+gtk_gst_widget_get_type
+GTK_TYPE_GST_WIDGET
+GTK_GST_WIDGET
+GTK_GST_WIDGET_CLASS
+GTK_IS_GST_WIDGET
+GST_IS_GST_WIDGET_CLASS
+GTK_GST_WIDGET_CAST
+GtkGstWidgetPrivate
+</SECTION>
+
+<SECTION>
+<FILE>gtkgstwidget-version</FILE>
+GTK_GST_WIDGET_MAJOR_VERSION
+GTK_GST_WIDGET_MICRO_VERSION
+GTK_GST_WIDGET_MINOR_VERSION
+</SECTION>
