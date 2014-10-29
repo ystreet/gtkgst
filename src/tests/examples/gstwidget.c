@@ -186,7 +186,6 @@ main (int argc, char *argv[])
                                       "format", G_TYPE_STRING, "BGRA",
                                       NULL) ;
   g_object_set (videosink, "caps", caps, NULL);
-  gst_caps_unref (caps);
 
   gst_bin_add_many (GST_BIN (pipeline), videosrc, videosink, NULL);
 
