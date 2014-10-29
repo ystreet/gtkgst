@@ -169,7 +169,7 @@ gtk_gst_widget_new (void)
 }
 
 static gboolean
-_queue_draw (GtkGstGLWidget * widget)
+_queue_draw (GtkGstWidget * widget)
 {
   gtk_widget_queue_draw (GTK_WIDGET (widget));
 
@@ -179,6 +179,8 @@ _queue_draw (GtkGstGLWidget * widget)
 void
 gtk_gst_widget_set_buffer (GtkGstWidget * widget, GstBuffer *buffer)
 {
+  GMainContext *main_context = g_main_context_default ();
+
   g_return_if_fail (GTK_IS_GST_WIDGET (widget));
   g_return_if_fail (widget->priv->negotiated);
   g_return_if_fail (GST_IS_BUFFER (buffer));
@@ -194,7 +196,7 @@ gtk_gst_widget_set_buffer (GtkGstWidget * widget, GstBuffer *buffer)
 }
 
 static gboolean
-_queue_resize (GtkGstGLWidget * widget)
+_queue_resize (GtkGstWidget * widget)
 {
   gtk_widget_queue_resize (GTK_WIDGET (widget));
 
@@ -204,6 +206,7 @@ _queue_resize (GtkGstGLWidget * widget)
 gboolean
 gtk_gst_widget_set_caps (GtkGstWidget * widget, GstCaps *caps)
 {
+  GMainContext *main_context = g_main_context_default ();
   GstStructure *s;
   GstVideoInfo v_info;
 
