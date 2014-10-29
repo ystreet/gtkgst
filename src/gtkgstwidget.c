@@ -168,6 +168,14 @@ gtk_gst_widget_new (void)
   return (GtkWidget *) g_object_new (GTK_TYPE_GST_WIDGET, NULL);
 }
 
+static gboolean
+_queue_draw (GtkGstGLWidget * widget)
+{
+  gtk_widget_queue_draw (GTK_WIDGET (widget));
+
+  return G_SOURCE_REMOVE;
+}
+
 void
 gtk_gst_widget_set_buffer (GtkGstWidget * widget, GstBuffer *buffer)
 {
@@ -181,6 +189,16 @@ gtk_gst_widget_set_buffer (GtkGstWidget * widget, GstBuffer *buffer)
   gtk_widget_queue_draw (GTK_WIDGET (widget));
 
   g_mutex_unlock (&widget->priv->lock);
+
+  g_main_context_invoke (main_context, (GSourceFunc) _queue_draw, widget);
+}
+
+static gboolean
+_queue_resize (GtkGstGLWidget * widget)
+{
+  gtk_widget_queue_resize (GTK_WIDGET (widget));
+
+  return G_SOURCE_REMOVE;
 }
 
 gboolean
@@ -192,6 +210,9 @@ gtk_gst_widget_set_caps (GtkGstWidget * widget, GstCaps *caps)
   g_return_val_if_fail (GTK_IS_GST_WIDGET (widget), FALSE);
   g_return_val_if_fail (GST_IS_CAPS (caps), FALSE);
   g_return_val_if_fail (gst_caps_is_fixed (caps), FALSE);
+
+  if (widget->priv->caps && gst_caps_is_equal_fixed (widget->priv->caps, caps))
+    return TRUE;
 
   if (!gst_video_info_from_caps (&v_info, caps))
     return FALSE;
@@ -209,6 +230,8 @@ gtk_gst_widget_set_caps (GtkGstWidget * widget, GstCaps *caps)
   g_mutex_unlock (&widget->priv->lock);
 
   gtk_widget_queue_resize (GTK_WIDGET (widget));
+
+  g_main_context_invoke (main_context, (GSourceFunc) _queue_resize, widget);
 
   return TRUE;
 }

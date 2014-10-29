@@ -220,7 +220,9 @@ gtk_gst_gl_widget_render (GtkGLArea * widget, GdkGLContext *context)
 
   /* failed to map the video frame */
   if (gst_widget->priv->initted && gst_widget->priv->negotiated
-        && gst_widget->priv->buffer) {
+        && gst_widget->priv->buffer && gst_widget->priv->upload) {
+    gst_gl_upload_set_format (gst_widget->priv->upload, &gst_widget->priv->v_info);
+
     if (gst_widget->priv->new_buffer || gst_widget->priv->current_tex == 0) {
       if (!gst_gl_upload_perform_with_buffer (gst_widget->priv->upload,
             gst_widget->priv->buffer, &gst_widget->priv->current_tex, NULL)) {
@@ -234,6 +236,7 @@ gtk_gst_gl_widget_render (GtkGLArea * widget, GdkGLContext *context)
     gst_widget->priv->new_buffer = FALSE;
   } else {
 error:
+    /* FIXME: nothing to display */
     glClearColor (1.0, 0.0, 0.0, 1.0);
     glClear (GL_COLOR_BUFFER_BIT);
   }
@@ -275,9 +278,17 @@ _reset (GtkGstGLWidget * gst_widget)
 
   gst_caps_replace (&gst_widget->priv->caps, NULL);
 
-  if (gst_widget->priv->context)
+  if (gst_widget->priv->context) {
     gst_gl_context_thread_add (gst_widget->priv->context,
         (GstGLContextThreadFunc) _reset_gl, gst_widget);
+    gst_object_unref (gst_widget->priv->other_context);
+    gst_widget->priv->other_context = NULL;
+  }
+
+  if (gst_widget->priv->context) {
+    gst_object_unref (gst_widget->priv->context);
+    gst_widget->priv->context = NULL;
+  }
 
   gst_widget->priv->negotiated = FALSE;
   gst_widget->priv->initted = FALSE;
@@ -297,16 +308,6 @@ gtk_gst_gl_widget_finalize (GObject * object)
   g_mutex_clear (&widget->priv->lock);
 
   _reset (widget);
-
-  if (widget->priv->context) {
-    gst_object_unref (widget->priv->context);
-    widget->priv->context = NULL;
-  }
-
-  if (widget->priv->other_context) {
-    gst_object_unref (widget->priv->other_context);
-    widget->priv->other_context = NULL;
-  }
 
   if (widget->priv->display) {
     gst_object_unref (widget->priv->display);
@@ -359,9 +360,19 @@ gtk_gst_gl_widget_new (void)
   return (GtkWidget *) g_object_new (GTK_TYPE_GST_GL_WIDGET, NULL);
 }
 
+static gboolean
+_queue_draw (GtkGstGLWidget * widget)
+{
+  gtk_widget_queue_draw (GTK_WIDGET (widget));
+
+  return G_SOURCE_REMOVE;
+}
+
 void
 gtk_gst_gl_widget_set_buffer (GtkGstGLWidget * widget, GstBuffer *buffer)
 {
+  GMainContext *main_context = g_main_context_default ();
+
   g_return_if_fail (GTK_IS_GST_GL_WIDGET (widget));
   g_return_if_fail (widget->priv->negotiated);
   g_return_if_fail (GST_IS_BUFFER (buffer));
@@ -370,31 +381,40 @@ gtk_gst_gl_widget_set_buffer (GtkGstGLWidget * widget, GstBuffer *buffer)
 
   gst_buffer_replace (&widget->priv->buffer, buffer);
   widget->priv->new_buffer = TRUE;
-  gtk_widget_queue_draw (GTK_WIDGET (widget));
 
   g_mutex_unlock (&widget->priv->lock);
+
+  g_main_context_invoke (main_context, (GSourceFunc) _queue_draw, widget);
 }
 
-/* with lock */
-static void
-_get_gl_context (GtkGstGLWidget * gst_widget)
+struct get_context
 {
+  GtkGstGLWidget *widget;
+  GMutex lock;
+  GCond cond;
+  gboolean fired;
+  GstGLContext *other_context;
+};
+
+static gboolean
+_get_gl_context (struct get_context *info)
+{
+  GtkGstGLWidget *gst_widget = info->widget;
   GdkGLContext *gdk_context;
   GstGLPlatform platform;
   GstGLAPI gl_api;
   guintptr gl_handle;
 
-  if (gst_widget->priv->negotiated)
-    return;
+  g_mutex_lock (&info->lock);
 
   gtk_widget_realize (GTK_WIDGET (gst_widget));
 
   gdk_context = gtk_gl_area_get_context (GTK_GL_AREA (gst_widget));
-  g_return_if_fail (gdk_context != NULL);
+  if (gdk_context == NULL) {
+    g_assert_not_reached ();
+    goto out;
+  }
 
-  /* XXX: outsmart the equality check in Gtk which doesn't take into account
-   * the thread the context is current in */
-  gdk_gl_context_clear_current ();
   gdk_gl_context_make_current (gdk_context);
 
 #if GTK_GST_HAVE_X11
@@ -403,25 +423,37 @@ _get_gl_context (GtkGstGLWidget * gst_widget)
     gl_api = gst_gl_context_get_current_gl_api (NULL, NULL);
     gl_handle = gst_gl_context_get_current_gl_context (platform);
     if (gl_handle)
-      gst_widget->priv->other_context = gst_gl_context_new_wrapped (gst_widget->priv->display, gl_handle, platform, gl_api);
+      info->other_context = gst_gl_context_new_wrapped (gst_widget->priv->display, gl_handle, platform, gl_api);
   }
 #endif
 
-  gst_widget->priv->context = gst_gl_context_new (gst_widget->priv->display);
-  gst_gl_context_create (gst_widget->priv->context, gst_widget->priv->other_context, NULL);
+out:
+  info->fired = TRUE;
+  g_cond_signal (&info->cond);
+  g_mutex_unlock (&info->lock);
+  return G_SOURCE_REMOVE;
+}
 
-  gdk_gl_context_clear_current ();
+static gboolean
+_queue_resize (GtkGstGLWidget * widget)
+{
+  gtk_widget_queue_resize (GTK_WIDGET (widget));
+
+  return G_SOURCE_REMOVE;
 }
 
 gboolean
 gtk_gst_gl_widget_set_caps (GtkGstGLWidget * widget, GstCaps *caps)
 {
-  GstStructure *s;
+  GMainContext *main_context = g_main_context_default ();
   GstVideoInfo v_info;
 
   g_return_val_if_fail (GTK_IS_GST_GL_WIDGET (widget), FALSE);
   g_return_val_if_fail (GST_IS_CAPS (caps), FALSE);
   g_return_val_if_fail (gst_caps_is_fixed (caps), FALSE);
+
+  if (widget->priv->caps && gst_caps_is_equal_fixed (widget->priv->caps, caps))
+    return TRUE;
 
   if (!gst_video_info_from_caps (&v_info, caps))
     return FALSE;
@@ -430,23 +462,49 @@ gtk_gst_gl_widget_set_caps (GtkGstGLWidget * widget, GstCaps *caps)
 
   _reset (widget);
 
-  _get_gl_context (widget);
+  if (!widget->priv->negotiated) {
+    struct get_context info;
+
+    info.widget = widget;
+    g_mutex_init (&info.lock);
+    g_cond_init (&info.cond);
+    info.fired = FALSE;
+    info.other_context = NULL;
+
+    g_main_context_invoke (main_context, (GSourceFunc) _get_gl_context, &info);
+
+    g_mutex_unlock (&widget->priv->lock);
+    g_mutex_lock (&info.lock);
+    while (!info.fired)
+      g_cond_wait (&info.cond, &info.lock);
+    g_mutex_unlock (&info.lock);
+    g_mutex_lock (&widget->priv->lock);
+
+    g_mutex_clear (&info.lock);
+    g_cond_clear (&info.cond);
+    widget->priv->other_context = info.other_context;
+  }
+
   if (!GST_GL_IS_CONTEXT (widget->priv->other_context)) {
     g_mutex_unlock (&widget->priv->lock);
     g_return_val_if_fail (GST_GL_IS_CONTEXT (widget->priv->other_context), FALSE);
   }
 
+  widget->priv->context = gst_gl_context_new (widget->priv->display);
+  gst_gl_context_create (widget->priv->context, widget->priv->other_context, NULL);
+
   gst_caps_replace (&widget->priv->caps, caps);
 
-  if (!widget->priv->upload)
-    widget->priv->upload = gst_gl_upload_new (widget->priv->context);
-  gst_gl_upload_set_format (widget->priv->upload, &v_info);
+  if (widget->priv->upload)
+    gst_object_unref (widget->priv->upload);
+  widget->priv->upload = gst_gl_upload_new (widget->priv->context);
 
   widget->priv->v_info = v_info;
   widget->priv->negotiated = TRUE;
 
   g_mutex_unlock (&widget->priv->lock);
-  gtk_widget_queue_resize (GTK_WIDGET (widget));
+
+  g_main_context_invoke (main_context, (GSourceFunc) _queue_resize, widget);
 
   return TRUE;
 }
