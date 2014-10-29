@@ -79,7 +79,7 @@ gtk_gst_gl_widget_get_preferred_width (GtkWidget * widget, gint *min, gint *natu
     video_width = 10;
 
   if (min)
-    *min = video_width;
+    *min = 1;
   if (natural)
     *natural = video_width;
 }
@@ -94,7 +94,7 @@ gtk_gst_gl_widget_get_preferred_height (GtkWidget * widget, gint *min, gint *nat
     video_height = 10;
 
   if (min)
-    *min = video_height;
+    *min = 1;
   if (natural)
     *natural = video_height;
 }

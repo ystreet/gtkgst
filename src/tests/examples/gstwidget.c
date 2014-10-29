@@ -112,23 +112,12 @@ main (int argc, char *argv[])
 
   //window that contains an area where the video is drawn
   GtkWidget* window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_widget_set_size_request (window, 640, 480);
+  gtk_window_set_default_size (GTK_WINDOW (window), 640, 480);
   gtk_window_move (GTK_WINDOW (window), 300, 10);
   gtk_window_set_title (GTK_WINDOW (window), "gtkgstwidget");
-  GdkGeometry geometry;
-  geometry.min_width = 1;
-  geometry.min_height = 1;
-  geometry.max_width = -1;
-  geometry.max_height = -1;
-  gtk_window_set_geometry_hints (GTK_WINDOW (window), window, &geometry, GDK_HINT_MIN_SIZE);
 
   //window to control the states
   GtkWidget* window_control = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  geometry.min_width = 1;
-  geometry.min_height = 1;
-  geometry.max_width = -1;
-  geometry.max_height = -1;
-  gtk_window_set_geometry_hints (GTK_WINDOW (window_control), window_control, &geometry, GDK_HINT_MIN_SIZE);
   gtk_window_set_resizable (GTK_WINDOW (window_control), FALSE);
   gtk_window_move (GTK_WINDOW (window_control), 10, 10);
   GtkWidget* grid = gtk_grid_new ();
@@ -182,7 +171,6 @@ main (int argc, char *argv[])
   GstCaps *caps = gst_caps_new_simple("video/x-raw",
                                       "width", G_TYPE_INT, 640,
                                       "height", G_TYPE_INT, 480,
-                                      "framerate", GST_TYPE_FRACTION, 25, 1,
                                       "format", G_TYPE_STRING, "BGRA",
                                       NULL) ;
   g_object_set (videosink, "caps", caps, NULL);
