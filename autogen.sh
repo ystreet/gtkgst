@@ -28,11 +28,14 @@ if test -z $GTKDOCIZE; then
         exit 1
 fi
 
+CONFIGURE_DEF_OPT='--enable-gtk-doc'
+
 # NOCONFIGURE is used by gnome-common
 if test -z "$NOCONFIGURE"; then
         if test -z "$*"; then
-                echo "I am going to run ./configure with no arguments - if you wish "
-                echo "to pass any to it, please specify them on the $0 command line."
+                echo "I am going to run configure as ./configure \"$CONFIGURE_DEF_OPT\""
+		echo "If you wish to pass any extra arguments to it, please "
+                echo "specify them on the $0 command line."
         fi
 fi
 
@@ -42,4 +45,4 @@ gtkdocize || exit $?
 autoreconf --force --install --verbose || exit $?
 
 cd "$olddir"
-test -n "$NOCONFIGURE" || "$srcdir/configure" "$@"
+test -n "$NOCONFIGURE" || "$srcdir/configure" $CONFIGURE_DEF_OPT "$@"
