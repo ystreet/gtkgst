@@ -1,0 +1,8 @@
+gtkgst is a set of libraries which provide easy support for embedding
+GStreamer video into Gtk.
+
+It provides GTK widgets (GtkGstWidget and GtkGstGLWidget) that can
+integrate with the provided GStreamer elements (gtksink and gtkglsink)
+to display video in a GTK UI.
+
+See the tests/examples sub-directory for example code.
