@@ -5,9 +5,6 @@ CLEANFILES =
 EXTRA_DIST =
 DISTCLEANFILES =
 lib_LTLIBRARIES =
-DIST_SUBDIRS = . tests
-
-SUBDIRS = . tests
 
 # source
 source_h = \

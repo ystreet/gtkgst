@@ -422,8 +422,8 @@ AC_CONFIG_FILES([
         src/gtkgst.pc
         src/gtkgst-version.h
 
-        src/tests/Makefile
-        src/tests/examples/Makefile
+        tests/Makefile
+        tests/examples/Makefile
         docs/Makefile
 ])
 

@@ -1,10 +1,7 @@
 DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc --enable-introspection
 
 SUBDIRS = \
-	src docs
-
-DIST_SUBDIRS = \
-	src docs
+	src docs tests
 
 EXTRA_DIST = \
 	AUTHORS COPYING NEWS README RELEASE REQUIREMENTS \
