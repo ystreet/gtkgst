@@ -14,8 +14,6 @@ IGNORE_HFILES = \
 	$(top_builddir)/src/config.h \
 	$(top_builddir)/src/gtkgst-config.h \
 	$(top_builddir)/src/gtkgst-version.h \
-	$(top_builddir)/src/gstgtksink.h \
-	$(top_builddir)/src/gstgtkglsink.h \
 	$(top_srcdir)/src/gstgtksink.h \
 	$(top_srcdir)/src/gstgtkglsink.h
 
