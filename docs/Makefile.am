@@ -17,6 +17,11 @@ IGNORE_HFILES = \
 	$(top_srcdir)/src/gstgtksink.h \
 	$(top_srcdir)/src/gstgtkglsink.h
 
+if !ENABLE_GL
+IGNORE_HFILES += \
+	$(top_srcdir)/src/gtkgstglwidget.h
+endif
+
 EXTRA_HFILES =
 
 HTML_IMAGES =
