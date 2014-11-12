@@ -1,5 +1,5 @@
 
-noinst_PROGRAMS = gstwidget gstglwidget gtksink gtkglsink
+noinst_PROGRAMS = gstwidget gtksink
 
 gstwidget_SOURCES = gstwidget.c
 gstwidget_CFLAGS = -I$(top_srcdir)/src -I$(top_builddir)/src \
@@ -12,6 +12,8 @@ gtksink_CFLAGS = -I$(top_srcdir)/src -I$(top_builddir)/src \
 gtksink_LDADD = $(top_builddir)/src/libgtkgst-1.0.la
 
 if ENABLE_GL
+noinst_PROGRAMS += gstglwidget gtkglsink
+
 gstglwidget_SOURCES = gstglwidget.c
 gstglwidget_CFLAGS = -I$(top_srcdir)/src -I$(top_builddir)/src \
 	$(GTK_GST_WIDGET_CFLAGS)
