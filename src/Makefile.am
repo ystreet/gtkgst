@@ -52,7 +52,7 @@ lib_LTLIBRARIES += libgtkgst-1.0.la
 gtkgstincludedir = $(includedir)/gtkgst-1.0
 gtkgstinclude_HEADERS = $(source_h)
 nodist_gtkgstinclude_HEADERS = \
-	$(top_builddir)/src/gtkgst-version.h \
+	$(builddir)/gtkgst-version.h \
 	$(NULL)
 
 # pkg-config files
@@ -71,7 +71,7 @@ libgstgtksink_la_CPPFLAGS = \
 	-I$(top_builddir)/src \
 	$(GTK_GST_WIDGET_DEBUG_CFLAGS)
 libgstgtksink_la_CFLAGS = $(shared_cflags)
-libgstgtksink_la_LIBADD = $(top_builddir)/src/libgtkgst-1.0.la $(shared_libadd)
+libgstgtksink_la_LIBADD = $(builddir)/libgtkgst-1.0.la $(shared_libadd)
 libgstgtksink_la_LDFLAGS = $(GTK_GST_PLUGIN_LDFLAGS)
 libgstgtksink_la_SOURCES = gstgtksink.h gstgtksink.c gstplugin.c
 
