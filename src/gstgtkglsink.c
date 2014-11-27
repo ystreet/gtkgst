@@ -109,13 +109,13 @@ gst_gtk_gl_sink_class_init (GstGtkGLSinkClass * klass)
   gobject_class->get_property = gst_gtk_gl_sink_get_property;
 
   gst_element_class_set_metadata (gstelement_class, "Gtk Video Sink",
-      "Sink/Video", "A video sink the renders to a GtkGstGLWidget",
+      "Sink/Video", "A video sink the renders to a GtkWidget",
       "Matthew Waters <matthew@centricular.com>");
 
   g_object_class_install_property (gobject_class, PROP_WIDGET,
       g_param_spec_object ("widget", "Gtk Widget",
-          "Which GtkGstGLWidget to render into",
-          GTK_TYPE_GST_GL_WIDGET, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          "The GtkWidget to place in the widget heirachy",
+          GTK_TYPE_WIDGET, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&gst_gtk_gl_sink_template));
@@ -135,6 +135,7 @@ gst_gtk_gl_sink_class_init (GstGtkGLSinkClass * klass)
 static void
 gst_gtk_gl_sink_init (GstGtkGLSink * gtk_sink)
 {
+  gtk_sink->widget = (GtkGstGLWidget *) gtk_gst_gl_widget_new ();
 }
 
 static void
@@ -148,13 +149,6 @@ gst_gtk_gl_sink_set_property (GObject * object, guint prop_id,
   gtk_sink = GST_GTK_GL_SINK (object);
 
   switch (prop_id) {
-    case PROP_WIDGET:
-      GST_OBJECT_LOCK (gtk_sink);
-      if (gtk_sink->widget)
-        g_object_unref (gtk_sink->widget);
-      gtk_sink->widget = g_value_get_object (value);
-      GST_OBJECT_UNLOCK (gtk_sink);
-      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -164,7 +158,9 @@ gst_gtk_gl_sink_set_property (GObject * object, guint prop_id,
 static void
 gst_gtk_gl_sink_finalize (GObject * object)
 {
-  GstGtkGLSink *gtk_sink;
+  GstGtkGLSink *gtk_sink = GST_GTK_GL_SINK (object);;
+
+  g_object_unref (gtk_sink->widget);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -287,8 +283,6 @@ gst_gtk_gl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   if (!gst_video_info_from_caps (&gtk_sink->v_info, caps))
     return FALSE;
 
-  if (!gtk_sink->widget)
-    return FALSE;
   gtk_widget_realize (GTK_WIDGET (gtk_sink->widget));
 
   if (!gtk_gst_gl_widget_set_caps (gtk_sink->widget, caps))

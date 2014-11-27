@@ -122,18 +122,17 @@ main (int argc, char *argv[])
   gtk_widget_show (grid);
   gtk_widget_show (window_control);
 
-  //area where the video is drawn
-  GtkWidget* area = gtk_gst_widget_new();
-  gtk_container_add (GTK_CONTAINER (window), area);
-
-  gtk_widget_realize(area);
-
   g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(destroy_cb), pipeline);
 
   //configure the pipeline
   GstElement* videosrc = gst_element_factory_make ("videotestsrc", "videotestsrc");
   GstElement* videosink = gst_element_factory_make ("gtksink", "gtksink");
-  g_object_set (videosink, "widget", area, NULL);
+
+  GtkWidget *area;
+  g_object_get (videosink, "widget", &area, NULL);
+  gtk_container_add (GTK_CONTAINER (window), area);
+
+  gtk_widget_realize(area);
 
   GstCaps *caps = gst_caps_new_simple("video/x-raw",
                                       "width", G_TYPE_INT, 640,
