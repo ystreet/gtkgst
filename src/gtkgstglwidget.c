@@ -52,6 +52,7 @@ struct _GtkGstGLWidgetPrivate
 
   gboolean          negotiated;
   GstBuffer        *buffer;
+  GstCaps          *gl_caps;
   GstCaps          *caps;
   GstVideoInfo      v_info;
   gboolean          new_buffer;
@@ -218,16 +219,26 @@ gtk_gst_gl_widget_render (GtkGLArea * widget, GdkGLContext *context)
   if (!gst_widget->priv->initted)
     gtk_gst_gl_widget_init_redisplay (gst_widget);
 
-  /* failed to map the video frame */
   if (gst_widget->priv->initted && gst_widget->priv->negotiated
         && gst_widget->priv->buffer && gst_widget->priv->upload) {
-    gst_gl_upload_set_format (gst_widget->priv->upload, &gst_widget->priv->v_info);
+    gst_gl_upload_set_caps (gst_widget->priv->upload, gst_widget->priv->caps,
+        gst_widget->priv->gl_caps);
 
     if (gst_widget->priv->new_buffer || gst_widget->priv->current_tex == 0) {
+      GstBuffer *gl_buf;
+      GstVideoFrame gl_frame;
+
       if (!gst_gl_upload_perform_with_buffer (gst_widget->priv->upload,
-            gst_widget->priv->buffer, &gst_widget->priv->current_tex, NULL)) {
+            gst_widget->priv->buffer, &gl_buf)) {
         goto error;
       }
+
+      if (!gst_video_frame_map (&gl_frame, &gst_widget->priv->v_info, gl_buf,
+            GST_MAP_READ | GST_MAP_GL)) {
+        goto error;
+      }
+
+      gst_widget->priv->current_tex = *(guint *) gl_frame.data[0];
     }
     gst_gl_context_thread_add (gst_widget->priv->context,
         (GstGLContextThreadFunc) _flush_gl, NULL);
@@ -494,6 +505,11 @@ gtk_gst_gl_widget_set_caps (GtkGstGLWidget * widget, GstCaps *caps)
   gst_gl_context_create (widget->priv->context, widget->priv->other_context, NULL);
 
   gst_caps_replace (&widget->priv->caps, caps);
+
+  gst_caps_replace (&widget->priv->gl_caps, NULL);
+  widget->priv->gl_caps = gst_video_info_to_caps (&v_info);
+  gst_caps_set_features (widget->priv->gl_caps, 0,
+      gst_caps_features_from_string (GST_CAPS_FEATURE_MEMORY_GL_MEMORY));
 
   if (widget->priv->upload)
     gst_object_unref (widget->priv->upload);
