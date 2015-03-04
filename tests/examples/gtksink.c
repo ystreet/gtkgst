@@ -18,6 +18,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
+#include <gst/gst.h>
 #include <gtkgstwidget.h>
 
 static void
@@ -73,7 +74,18 @@ destroy_cb (GtkWidget * widget, GdkEvent * event, GstElement * pipeline)
 int
 main (int argc, char *argv[])
 {
+  GstPlugin *plugin;
+  GError *err = NULL;
+
   gst_init (&argc, &argv);
+
+  plugin = gst_plugin_load_file (PLUGIN_BUILD_DIR "libgstgtksink." G_MODULE_SUFFIX, &err);
+
+  if (plugin == NULL) {
+    g_error ("Failed to load local GStreamer plugin: %s", err->message);
+    return -1;
+  }
+
   gtk_init (&argc, &argv);
 
   GstElement* pipeline = gst_pipeline_new ("pipeline");
@@ -127,6 +139,9 @@ main (int argc, char *argv[])
   //configure the pipeline
   GstElement* videosrc = gst_element_factory_make ("videotestsrc", "videotestsrc");
   GstElement* videosink = gst_element_factory_make ("gtksink", "gtksink");
+
+  if (videosink == NULL)
+    g_error ("Could not create 'gtksink' element.");
 
   GtkWidget *area;
   g_object_get (videosink, "widget", &area, NULL);
